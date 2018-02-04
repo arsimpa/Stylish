@@ -631,3 +631,16 @@ extension UIColor: StylesheetParseable {
     }
 }
 
+extension UIBarStyle: StylesheetParseable {
+    public static func parse(from stylesheetValue: Any) -> UIBarStyle? {
+        guard let value = stylesheetValue as? String else { return nil }
+        switch value {
+        case "default":
+            return .default
+        case "black":
+            return .black
+        default :
+            return nil
+        }
+    }
+}

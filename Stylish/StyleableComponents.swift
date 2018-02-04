@@ -74,3 +74,19 @@ import UIKit
         }
     }
 }
+
+@IBDesignable open class StyleableUITabBar: UITabBar, Styleable {
+    @IBInspectable public var styles: String = "" {
+        didSet {
+            Stylish.applyStyleNames(styles, to: self)
+        }
+    }
+}
+
+@IBDesignable open class StyleableUINavigationBar: UINavigationBar, Styleable {
+    @IBInspectable public var styles: String = "" {
+        didSet {
+            Stylish.applyStyleNames(styles, to: self)
+        }
+    }
+}

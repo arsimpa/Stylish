@@ -203,6 +203,14 @@ public extension Style {
     typealias highlightedAnimationImages = Stylish.PropertyStylers.UIImageView.HighlightedAnimationImages
     /// When true, calls startAnimating() on target UIImageView, calls stopAnimating() when false
     typealias isAnimating = Stylish.PropertyStylers.UIImageView.IsAnimating
+    /// Sets property value on UINavigationBar and subclasses
+    typealias barStyle = Stylish.PropertyStylers.UINavigationBar.BarStyle
+    /// Sets property value on UINavigationBar and subclasses
+    typealias isTranslucent = Stylish.PropertyStylers.UINavigationBar.IsTranslucent
+    /// Sets property value on UINavigationBar and subclasses
+    typealias barTintColor = Stylish.PropertyStylers.UINavigationBar.BarTintColor
+    /// Sets property value on UINavigationBar and subclasses
+    typealias titleColor = Stylish.PropertyStylers.UINavigationBar.TitleColor
 }
 
 
@@ -913,6 +921,37 @@ public extension Stylish.PropertyStylers {
             public static var propertyKey: String { return "isAnimating" }
             public static func apply(value: Bool?, to target: UIKit.UIImageView) {
                 if value == true { target.startAnimating() } else { target.stopAnimating() }
+            }
+        }
+    }
+
+    class UINavigationBar : UIView {
+
+        public struct BarStyle: PropertyStyler {
+            public static var propertyKey: String { return "barStyle" }
+            public static func apply(value: UIBarStyle?, to target: UIKit.UINavigationBar) {
+                target.barStyle = value ?? .default
+            }
+        }
+
+        public struct IsTranslucent: PropertyStyler {
+            public static var propertyKey: String { return "isTranslucent" }
+            public static func apply(value: Bool?, to target: UIKit.UINavigationBar) {
+                target.isTranslucent = value ?? true
+            }
+        }
+
+        public struct BarTintColor: PropertyStyler {
+            public static var propertyKey: String { return "barTintColor" }
+            public static func apply(value: UIColor?, to target: UIKit.UINavigationBar) {
+                target.barTintColor = value
+            }
+        }
+
+        public struct TitleColor: PropertyStyler {
+            public static var propertyKey: String { return "titleColor" }
+            public static func apply(value: UIColor?, to target: UIKit.UINavigationBar) {
+               target.titleTextAttributes = [.foregroundColor: value]
             }
         }
     }
