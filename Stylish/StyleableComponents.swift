@@ -90,3 +90,19 @@ import UIKit
         }
     }
 }
+
+@IBDesignable open class StyleableUICollectionView: UICollectionView, Styleable {
+    @IBInspectable public var styles: String = "" {
+        didSet {
+            Stylish.applyStyleNames(styles, to: self)
+        }
+    }
+}
+
+@IBDesignable open class StyleableUITableView: UITableView, Styleable {
+    @IBInspectable public var styles: String = "" {
+        didSet {
+            Stylish.applyStyleNames(styles, to: self)
+        }
+    }
+}
