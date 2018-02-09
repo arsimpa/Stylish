@@ -106,3 +106,19 @@ import UIKit
         }
     }
 }
+
+@IBDesignable open class StyleableUIUIBarItem: UIBarItem, Styleable {
+    @IBInspectable public var styles: String = "" {
+        didSet {
+            Stylish.applyStyleNames(styles, to: self)
+        }
+    }
+}
+
+@IBDesignable open class StyleableUIBarButtonItem: UIBarButtonItem, Styleable {
+    @IBInspectable public var styles: String = "" {
+        didSet {
+            Stylish.applyStyleNames(styles, to: self)
+        }
+    }
+}

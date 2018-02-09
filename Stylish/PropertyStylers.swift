@@ -301,8 +301,14 @@ public extension Stylish.PropertyStylers {
         
         public struct TintColor: PropertyStyler {
             public static var propertyKey: String { return "tintColor" }
-            public static func apply(value: UIColor?, to target: UIKit.UIView) {
-                target.tintColor = value
+            public static func apply(value: UIColor?, to target: Any) {
+                switch target {
+                case let view as UIKit.UIView:
+                    view.tintColor = value
+                case let barButton as UIKit.UIBarButtonItem:
+                    barButton.tintColor = value
+                default: break
+                }
             }
         }
         
