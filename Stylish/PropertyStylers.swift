@@ -957,7 +957,11 @@ public extension Stylish.PropertyStylers {
         public struct TitleColor: PropertyStyler {
             public static var propertyKey: String { return "titleColor" }
             public static func apply(value: UIColor?, to target: UIKit.UINavigationBar) {
-               target.titleTextAttributes = [.foregroundColor: value]
+                if let value = value {
+                    target.titleTextAttributes = [.foregroundColor: value]
+                } else {
+                    target.titleTextAttributes?.removeValue(forKey: .foregroundColor)
+                }
             }
         }
     }
@@ -998,7 +1002,7 @@ public protocol TextControl: class {
 }
 
 /// A protocol to conform UITextField and UITextView to, so they can be styled with the same Property Stylers
-public protocol TextInputControl: class, TextControl {
+public protocol TextInputControl: TextControl {
     var allowsEditingTextAttributes: Bool { get set }
     var autocapitalizationType: UITextAutocapitalizationType { get set }
     var autocorrectionType: UITextAutocorrectionType { get set }
