@@ -35,6 +35,14 @@ import UIKit
     }
 }
 
+@IBDesignable open class StyleableUIScrollView: UIScrollView, Styleable {
+    @IBInspectable public var styles: String = "" {
+        didSet {
+            Stylish.applyStyleNames(styles, to: self)
+        }
+    }
+}
+
 @IBDesignable open class StyleableUILabel: UILabel, Styleable {
     @IBInspectable public var styles: String = "" {
         didSet {
