@@ -185,6 +185,8 @@ public extension Style {
     typealias backgroundImageForHighlightedState = Stylish.PropertyStylers.UIButton.BackgroundImageForHighlightedState
     /// Sets property value on UIButtons and subclasses
     typealias backgroundImageForDisabledState = Stylish.PropertyStylers.UIButton.BackgroundImageForDisabledState
+    /// Sets property value on UIButtons and subclasses
+    typealias paddingForLabel = Stylish.PropertyStylers.UIButton.PaddingForLabel
     /// Sets property value on UIImageViews and subclasses
     typealias image = Stylish.PropertyStylers.UIImageView.Image
     /// Specifies a URL to asynchronously download an image from, and then set as the UIImageView's image property
@@ -844,6 +846,20 @@ public extension Stylish.PropertyStylers {
             public static var propertyKey: String { return "backgroundImageForDisabledState" }
             public static func apply(value: UIImage?, to target: UIKit.UIButton) {
                 target.setBackgroundImage(value, for: .disabled)
+            }
+        }
+
+        public struct PaddingForLabel: PropertyStyler {
+            public static var propertyKey: String { return "paddingForLabel" }
+            public static func apply(value: CGFloat?, to target: UIKit.UIButton) {
+                if #available(iOS 10.0, *), let label = target.titleLabel, let value = value {
+                    target.constraints.filter {
+                        $0.firstAnchor == target.widthAnchor
+                    }.forEach {
+                        $0.isActive = false
+                    }
+                    target.widthAnchor.constraint(equalTo: label.widthAnchor, constant: 2 * value).isActive = true
+                }
             }
         }
     }
