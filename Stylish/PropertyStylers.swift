@@ -217,12 +217,12 @@ public extension Style {
 
 
 public extension Stylish {
-    public enum PropertyStylers {}
+    enum PropertyStylers {}
 }
 
 public extension Stylish.PropertyStylers {
     
-    public class UIView {
+    class UIView {
         
         public struct BackgroundColor: PropertyStyler {
             public static var propertyKey: String { return "backgroundColor" }
@@ -233,7 +233,7 @@ public extension Stylish.PropertyStylers {
         
         public struct ContentMode: PropertyStyler {
             public static var propertyKey: String { return "contentMode" }
-            public static func apply(value: UIViewContentMode?, to target: UIKit.UIView) {
+            public static func apply(value: UIKit.UIView.ContentMode?, to target: UIKit.UIView) {
                 target.contentMode = value ?? .scaleToFill
             }
         }
@@ -358,7 +358,7 @@ public extension Stylish.PropertyStylers {
         }
     }
     
-    public class UIControl: UIView {
+    class UIControl: UIView {
         
         public struct IsEnabled: PropertyStyler {
             public static var propertyKey: String { return "isEnabled" }
@@ -368,7 +368,7 @@ public extension Stylish.PropertyStylers {
         }
     }
     
-    public class StylishTextControl: UIControl {
+    class StylishTextControl: UIControl {
         
         public struct AdjustsFontSizeToFitWidth: PropertyStyler {
             public static var propertyKey: String { return "adjustsFontSizeToFitWidth" }
@@ -457,7 +457,7 @@ public extension Stylish.PropertyStylers {
         }
     }
     
-    public class UILabel: StylishTextControl {
+    class UILabel: StylishTextControl {
         
         public struct BaselineAdjustment: PropertyStyler {
             public static var propertyKey: String { return "baselineAdjustment" }
@@ -509,7 +509,7 @@ public extension Stylish.PropertyStylers {
         }
     }
     
-    public class StylishTextInputControl: StylishTextControl {
+    class StylishTextInputControl: StylishTextControl {
         
         public struct AllowsEditingTextAttributes: PropertyStyler {
             public static var propertyKey: String { return "allowsEditingTextAttributes" }
@@ -620,7 +620,7 @@ public extension Stylish.PropertyStylers {
         }
     }
     
-    public class UITextField: StylishTextInputControl {
+    class UITextField: StylishTextInputControl {
         
         public struct Background: PropertyStyler {
             public static var propertyKey: String { return "background" }
@@ -638,28 +638,28 @@ public extension Stylish.PropertyStylers {
         
         public struct BorderStyle: PropertyStyler {
             public static var propertyKey: String { return "borderStyle" }
-            public static func apply(value: UITextBorderStyle?, to target: UIKit.UITextField) {
+            public static func apply(value: UIKit.UITextField.BorderStyle?, to target: UIKit.UITextField) {
                 target.borderStyle = value ?? .none
             }
         }
         
         public struct ClearButtonMode: PropertyStyler {
             public static var propertyKey: String { return "clearButtonMode" }
-            public static func apply(value: UITextFieldViewMode?, to target: UIKit.UITextField) {
+            public static func apply(value: UIKit.UITextField.ViewMode?, to target: UIKit.UITextField) {
                 target.clearButtonMode = value ?? .never
             }
         }
         
         public struct LeftViewMode: PropertyStyler {
             public static var propertyKey: String { return "leftViewMode" }
-            public static func apply(value: UITextFieldViewMode?, to target: UIKit.UITextField) {
+            public static func apply(value: UIKit.UITextField.ViewMode?, to target: UIKit.UITextField) {
                 target.leftViewMode = value ?? .never
             }
         }
         
         public struct RightViewMode: PropertyStyler {
             public static var propertyKey: String { return "rightViewMode" }
-            public static func apply(value: UITextFieldViewMode?, to target: UIKit.UITextField) {
+            public static func apply(value: UIKit.UITextField.ViewMode?, to target: UIKit.UITextField) {
                 target.rightViewMode = value ?? .never
             }
         }
@@ -686,7 +686,7 @@ public extension Stylish.PropertyStylers {
         }
     }
     
-    public class UITextView: StylishTextInputControl {
+    class UITextView: StylishTextInputControl {
         
         public struct IsEditable: PropertyStyler {
             public static var propertyKey: String { return "isEditable" }
@@ -717,7 +717,7 @@ public extension Stylish.PropertyStylers {
         }
     }
     
-    public class UIButton: UIControl {
+    class UIButton: UIControl {
         
         public struct AdjustsImageWhenDisabled: PropertyStyler {
             public static var propertyKey: String { return "adjustsImageWhenDisabled" }
@@ -864,7 +864,7 @@ public extension Stylish.PropertyStylers {
         }
     }
     
-    public class UIImageView: UIView {
+    class UIImageView: UIView {
         
         public struct Image: PropertyStyler {
             public static var propertyKey: String { return "image" }
@@ -997,9 +997,9 @@ public struct UIViewStripedSubviewStyler: PropertyStyler {
         if let target = target as? UIView, let value = value {
             target.viewWithTag(tag)?.removeFromSuperview()
             let context = CIContext()
-            let stripesFilter = CIFilter(name: "CIStripesGenerator", withInputParameters: ["inputColor0" : CIColor(color: value.withAlphaComponent(0.4)), "inputColor1" : CIColor(color: value.withAlphaComponent(0.6)), "inputWidth" : 2])!
+            let stripesFilter = CIFilter(name: "CIStripesGenerator", parameters: ["inputColor0" : CIColor(color: value.withAlphaComponent(0.4)), "inputColor1" : CIColor(color: value.withAlphaComponent(0.6)), "inputWidth" : 2])!
             let stripes = context.createCGImage(stripesFilter.outputImage!, from: CGRect(origin: CGPoint.zero, size: CGSize(width: 32.0, height: 32.0)))
-            let rotateFilter = CIFilter(name: "CIStraightenFilter", withInputParameters: ["inputImage" : CIImage(cgImage: stripes!), "inputAngle" : 2.35])!
+            let rotateFilter = CIFilter(name: "CIStraightenFilter", parameters: ["inputImage" : CIImage(cgImage: stripes!), "inputAngle" : 2.35])!
             let rotated = context.createCGImage(rotateFilter.outputImage!, from: rotateFilter.outputImage!.extent)
             let stripesView = UIView()
             stripesView.backgroundColor = UIColor(patternImage: UIImage(cgImage: rotated!))

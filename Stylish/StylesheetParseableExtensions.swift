@@ -152,7 +152,7 @@ extension UITextAutocapitalizationType: StylesheetParseable {
     public static func parse(from stylesheetValue: Any) -> UITextAutocapitalizationType? {
         switch stylesheetValue as? String {
         case .some("none"):
-            return .none
+            return Optional.none
         case .some("words"):
             return .words
         case .some("sentences"):
@@ -394,8 +394,8 @@ extension UITextContentType: StylesheetParseable {
     }
 }
 
-extension UITextFieldViewMode: StylesheetParseable {
-    public static func parse(from stylesheetValue: Any) -> UITextFieldViewMode? {
+extension UITextField.ViewMode: StylesheetParseable {
+    public static func parse(from stylesheetValue: Any) -> UITextField.ViewMode? {
         switch stylesheetValue as? String {
         case .some("never"):
             return .never
@@ -419,18 +419,18 @@ extension UIBaselineAdjustment: StylesheetParseable {
         case .some("alignCenters"):
             return .alignCenters
         case .some("none"):
-            return .none
+            return Optional.none
         default:
             return nil
         }
     }
 }
 
-extension UITextBorderStyle: StylesheetParseable {
-    public static func parse(from stylesheetValue: Any) -> UITextBorderStyle? {
+extension UITextField.BorderStyle: StylesheetParseable {
+    public static func parse(from stylesheetValue: Any) -> UITextField.BorderStyle? {
         switch stylesheetValue as? String {
         case .some("none"):
-            return .none
+            return Optional.none
         case .some("line"):
             return .line
         case .some("bezel"):
@@ -479,8 +479,8 @@ extension UIFont.Weight: StylesheetParseable {
     }
 }
 
-extension UIFontTextStyle: StylesheetParseable {
-    public static func parse(from stylesheetValue: Any) -> UIFontTextStyle? {
+extension UIFont.TextStyle: StylesheetParseable {
+    public static func parse(from stylesheetValue: Any) -> UIFont.TextStyle? {
         switch stylesheetValue as? String{
         case .some("title1"):
             return .title1
@@ -508,8 +508,8 @@ extension UIFontTextStyle: StylesheetParseable {
     }
 }
 
-extension UIViewContentMode: StylesheetParseable {
-    public static func parse(from stylesheetValue: Any) -> UIViewContentMode? {
+extension UIView.ContentMode: StylesheetParseable {
+    public static func parse(from stylesheetValue: Any) -> UIView.ContentMode? {
         guard let value = stylesheetValue as? String else { return nil }
         switch value {
         case "scaleToFill" :
@@ -562,7 +562,7 @@ extension UIFont: StylesheetParseable {
         else if let italicFontSize = json["italicSize"] as? CGFloat {
             return self.init(descriptor: italicSystemFont(ofSize: italicFontSize).fontDescriptor, size: italicFontSize)
         }
-        else if let textStyle = UIFontTextStyle.parse(from: json["textStyle"] as Any) {
+        else if let textStyle = UIFont.TextStyle.parse(from: json["textStyle"] as Any) {
             let font = preferredFont(forTextStyle: textStyle)
             return self.init(descriptor: font.fontDescriptor, size: font.pointSize)
         }
