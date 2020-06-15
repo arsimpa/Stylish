@@ -47,6 +47,16 @@ extension String: StylesheetParseable {
     }
 }
 
+public struct StringArray: StylesheetParseable {
+    public static func parse(from stylesheetValue: Any) -> StringArray? {
+        return StringArray(strings: (stylesheetValue as? [String]) ?? [])
+    }
+    public let strings: [String]
+    public init(strings: [String]) {
+        self.strings = strings
+    }
+}
+
 extension Double: StylesheetParseable {
     public static func parse(from stylesheetValue: Any) -> Double? {
         return stylesheetValue as? Double
@@ -152,7 +162,7 @@ extension UITextAutocapitalizationType: StylesheetParseable {
     public static func parse(from stylesheetValue: Any) -> UITextAutocapitalizationType? {
         switch stylesheetValue as? String {
         case .some("none"):
-            return Optional.none
+            return .none
         case .some("words"):
             return .words
         case .some("sentences"):
@@ -419,7 +429,7 @@ extension UIBaselineAdjustment: StylesheetParseable {
         case .some("alignCenters"):
             return .alignCenters
         case .some("none"):
-            return Optional.none
+            return .none
         default:
             return nil
         }
@@ -430,7 +440,7 @@ extension UITextField.BorderStyle: StylesheetParseable {
     public static func parse(from stylesheetValue: Any) -> UITextField.BorderStyle? {
         switch stylesheetValue as? String {
         case .some("none"):
-            return Optional.none
+            return .none
         case .some("line"):
             return .line
         case .some("bezel"):
@@ -631,16 +641,3 @@ extension UIColor: StylesheetParseable {
     }
 }
 
-extension UIBarStyle: StylesheetParseable {
-    public static func parse(from stylesheetValue: Any) -> UIBarStyle? {
-        guard let value = stylesheetValue as? String else { return nil }
-        switch value {
-        case "default":
-            return .default
-        case "black":
-            return .black
-        default :
-            return nil
-        }
-    }
-}

@@ -28,9 +28,10 @@
 
 import UIKit
 
-/// A protocol that view types conform to in order to participate in the Stylish styling process. Requires a "styles" String property which can hold a comma-separated list of style names. Usually implemented as an IBInspectable property
+/// A protocol that view types conform to in order to participate in the Stylish styling process. Requires a "styles" String property which can hold a comma-separated list of style names and "stylesheet" property which can hold an optional override stylesheet other than the global one, which will then be used by this Styleable instance and inherited by its children.  Usually both required vars are implemented as IBInspectable properties
 public protocol Styleable: class {
     var styles: String { get set }
+    var stylesheet: String? { get set }
 }
 
 /// A protocol that a type conforms to in order to be considered a Style.  Essentially, a style is a collection of value changes that will be applied to specific properties, so a Style is composed of a set of these property specific stylers.
@@ -38,12 +39,15 @@ public protocol Style {
     var propertyStylers: [AnyPropertyStyler] { get }
 }
 
-/// The protocol a type must conform to in order to be used as a Stylesheet. A Stylesheet is simply a dictionary of Styles, each associated with a name
+/// The protocol a type must conform to in order to be used as a Stylesheet. A Stylesheet is simply a dictionary of Styles, each associated with a name. A Stylesheet must also return the bundle it is associated with, in order for Styles / Property Stylers to know what bundle to retrieve images, colors, or other assets from
 public protocol Stylesheet: class {
     var styles: [String: Style] { get }
+    var bundle: Bundle { get }
 }
 
 extension Stylesheet {
+    /// The default implementation returns the Bundle that the Stylesheet class itself is a member of
+    public var bundle: Bundle { return Bundle(for: type(of: self)) }
     subscript(_ styleName: String) -> Style? {
         return styles[styleName]
     }
@@ -58,12 +62,25 @@ public protocol PropertyStyler: AnyPropertyStylerType {
     associatedtype PropertyType: StylesheetParseable
     associatedtype TargetType
     static var propertyKey: String { get }
-    static func apply(value: PropertyType?, to target: TargetType)
+    static func apply(value: PropertyType?, to target: TargetType, using bundle: Bundle)
 }
 
 public extension PropertyStyler {
-    public static func set(value: PropertyType?) -> AnyPropertyStyler {
-        return AnyPropertyStyler{ if let target = $0 as? TargetType { Self.apply(value: value, to: target) } }
+    static func set(value: PropertyType?) -> AnyPropertyStyler {
+        return AnyPropertyStyler {
+            if let target = $0 as? TargetType {
+                Self.apply(value: value, to: target, using: $1)
+            }
+        }
+    }
+    
+    static func set(value: @escaping (Bundle, UITraitCollection?) -> PropertyType?) -> AnyPropertyStyler {
+        return AnyPropertyStyler {
+            if let target = $0 as? TargetType {
+                let value = value($1, (target as? UITraitEnvironment)?.traitCollection)
+                Self.apply(value: value, to: target, using: $1)
+            }
+        }
     }
 }
 
@@ -73,19 +90,19 @@ public protocol AnyPropertyStylerType {
 }
 
 public extension PropertyStyler  {
-    public static var wrapped: Any {
+    static var wrapped: Any {
         return AnyPropertyStylerTypeWrapper(Self.self)
     }
 }
 
 /// Type-erased property styler, needed to hold arrays of them
 public struct AnyPropertyStyler {
-    private let propertyValueApplicator: (Styleable) -> ()
-    internal init(propertyValueApplicator: @escaping (Styleable) -> ()) {
+    private let propertyValueApplicator: (Styleable, Bundle) -> ()
+    internal init(propertyValueApplicator: @escaping (Styleable, Bundle) -> ()) {
         self.propertyValueApplicator = propertyValueApplicator
     }
-    internal func apply(to target: Styleable) {
-        propertyValueApplicator(target)
+    internal func apply(to target: Styleable, using bundle: Bundle) {
+        propertyValueApplicator(target, bundle)
     }
 }
 
@@ -118,21 +135,21 @@ public func +(left: Stylesheet, right: Stylesheet) ->  Stylesheet {
 /// A way to hold a reference to a Property Styler type itself, in a type-erased manner (for holding in arrays), and then creating a type-erased instance of the Property Styler Type as an AnyPropertyStyler on demand from either json data or an initial value.
 internal struct AnyPropertyStylerTypeWrapper {
     private let jsonInitializer:(String, Any) -> AnyPropertyStyler?
-    private let applicator: (Any?, Styleable) -> ()
+    private let applicator: (Any?, Styleable, Bundle) -> ()
     internal let propertyKey: String
     internal init<T: PropertyStyler>(_ propertyStylerType: T.Type) {
         self.propertyKey = propertyStylerType.propertyKey
-        let applicator: (Any?, Styleable) -> () = {
-            value, target in
+        let applicator: (Any?, Styleable, Bundle) -> () = {
+            value, target, bundle in
             if let value = value as? T.PropertyType?, let target = target as? T.TargetType {
-                T.apply(value: value, to: target)
+                T.apply(value: value, to: target, using: bundle)
             }
         }
         self.jsonInitializer = {
             propertyName, propertyValue in
             guard propertyName == T.propertyKey else { return nil }
-            if propertyValue is NSNull { return AnyPropertyStyler { applicator(nil, $0) } }
-            if let parsedValue = T.PropertyType.parse(from: propertyValue) { return AnyPropertyStyler { applicator(parsedValue, $0) } }
+            if propertyValue is NSNull { return AnyPropertyStyler { applicator(nil, $0, $1) } }
+            if let parsedValue = T.PropertyType.parse(from: propertyValue) { return AnyPropertyStyler { applicator(parsedValue, $0, $1) } }
             return nil
         }
         self.applicator = applicator
@@ -158,12 +175,16 @@ internal class AnyStylesheet: Stylesheet {
 /// Global type which exposes the core Stylish functionality methods
 public struct Stylish {
     
+    private static var registeredStylesheets = [String: Stylesheet]()
+    
+    public static func register(stylesheet: Stylesheet, named name: String) {
+        registeredStylesheets[name] = stylesheet
+    }
+    
     /// Get or set the current global stylesheet for the application. Setting a new Stylesheet will cause the entire view hierarchy to reapply any styles using the new stylesheet
     public static var stylesheet: Stylesheet? = nil {
         didSet {
-            #if TARGET_INTERFACE_BUILDER
-                return
-            #endif
+            #if !TARGET_INTERFACE_BUILDER
             switch (oldValue, stylesheet) {
             case (.some(let old), .some(let new)):
                 if ObjectIdentifier(old) != ObjectIdentifier(new) {
@@ -176,6 +197,7 @@ public struct Stylish {
             default:
                 break
             }
+            #endif
         }
     }
     
@@ -192,28 +214,46 @@ public struct Stylish {
     }()
     
     /// Accepts a comma-separated list of style names and attempts to retrieve them from the current global stylesheet, and having done so will apply them to the target Styleable instance.
-    public static func applyStyleNames(_ styles: String, to target: Styleable) {
+    public static func applyStyleNames(_ styles: String, to target: Styleable, using stylesheet: String?) {
         #if TARGET_INTERFACE_BUILDER
-            UIView().prepareForInterfaceBuilder()
+        UIView().prepareForInterfaceBuilder()
         #endif
+        let targetView = target as? UIView
+        let previousStylesheet = targetView?.inheritedStylesheet
+        
+        // If we have a non-nil stylesheet name to use for styling, or if the stylesheet name is nil and it was previously non-nil, set the inherited stylesheet property on the target view (and trigger a cascade of inheritance down its subviews)
+        if stylesheet != nil || previousStylesheet != nil { targetView?.inheritedStylesheet = stylesheet }
+        
+        // Resolve the correct stylesheet as follows: if there is an inherited stylesheet name, retrieve the registered stylesheet with that name (it may return nil). If there is no specified or inherited stylsheet name, use the default global stylesheet
+        let resolvedStylesheet = targetView?.inheritedStylesheet != nil ? registeredStylesheets[targetView!.inheritedStylesheet!] : Stylish.stylesheet
+        
         var hasInvalidStyleName = false
         var combinedStyle = styles.components(separatedBy: ",").reduce(AnyStyle(propertyStylers: []) as Style) {
             let name = $1.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let style = stylesheet?[name] else {
+            guard let style = resolvedStylesheet?[name] else {
                 hasInvalidStyleName = true
                 return $0
             }
             return $0 + style
         }
         #if TARGET_INTERFACE_BUILDER
-            if hasInvalidStyleName { combinedStyle = combinedStyle + ErrorStyle() }
+        if hasInvalidStyleName { combinedStyle = combinedStyle + ErrorStyle() }
         #endif
-        applyStyle(combinedStyle, to: target)
+        
+        applyStyle(combinedStyle, to: target, using: resolvedStylesheet)
+        
+        // Don't attempt the view hierarchy refresh if rendering in Interface Builder as an IBDesignable, since IB doesn't maintain the same kind of view hierarchy
+        #if !TARGET_INTERFACE_BUILDER
+        // If the stylesheet for the target we are styling was changed from what it was previously, refresh the style applications for the entire view hierarchy under the target, since some of the subviews will likely have inherited the new stylesheet
+        if previousStylesheet != targetView?.inheritedStylesheet {
+            targetView?.subviews.forEach { Stylish.refreshStyles(for: $0) }
+        }
+        #endif
     }
     
     /// Applies a single Style instance to the target Stylable object
-    public static func applyStyle(_ style: Style, to target: Styleable) {
-        style.propertyStylers.forEach { $0.apply(to: target) }
+    public static func applyStyle(_ style: Style, to target: Styleable, using stylesheet: Stylesheet?) {
+        style.propertyStylers.forEach { $0.apply(to: target, using: stylesheet?.bundle ?? Bundle.main) }
     }
     
     /// Refreshes the styles of all views in the app, in the event of a stylesheet change or update, etc.
@@ -225,11 +265,60 @@ public struct Stylish {
     
     /// Refreshes / reapplies the styling for a single view
     public static func refreshStyles(for view: UIView) {
+        if let styleable = view as? Styleable {
+            applyStyleNames(styleable.styles, to: styleable, using: view.inheritedStylesheet)
+        }
         for subview in view.subviews {
             refreshStyles(for: subview)
         }
-        if let styleable = view as? Styleable {
-            applyStyleNames(styleable.styles, to: styleable)
+    }
+}
+
+/// A private framework extension that manages the cascading of stylsheets through a hierarchy of UIViews
+fileprivate extension UIView {
+    struct StylishAssociatedObjectKeys {
+        static var inheritedStylesheet = "Stylish.inheritedStylesheet"
+    }
+    var inheritedStylesheet: String? {
+        get {
+            return objc_getAssociatedObject(self, &StylishAssociatedObjectKeys.inheritedStylesheet) as? String
+        }
+        set {
+            let previousStylesheet = inheritedStylesheet
+            switch self {
+            case let styleable as Styleable:
+                switch styleable.stylesheet {
+                // If we have an explicitly defined stylesheet name of our own, ignore the inherited value that has been passed in and save our own explicit stylsheet as our inherited stylesheet name
+                case .some:
+                    objc_setAssociatedObject(self, &StylishAssociatedObjectKeys.inheritedStylesheet, styleable.stylesheet, .OBJC_ASSOCIATION_RETAIN)
+                    
+                // If we don't have a stylesheet specifically defined and the inherited stylesheet value matches our superview, the save it as our own inherited stylesheet name
+                case .none where newValue == superview?.inheritedStylesheet:
+                    objc_setAssociatedObject(self, &StylishAssociatedObjectKeys.inheritedStylesheet, newValue, .OBJC_ASSOCIATION_RETAIN)
+                    
+                // In other cases we ignore the passed-in value (specifically, in cases where we don't have our own value, but the value passed in doesn't match our superview's stylesheet)
+                default:
+                    break
+                }
+            // If we don't conform to Styleable anyway, there's not much to worry about since we don't define a stylesheet for ourselves. Just set what is passed in as the inherited stylesheet name.
+            default:
+                objc_setAssociatedObject(self, &StylishAssociatedObjectKeys.inheritedStylesheet, newValue, .OBJC_ASSOCIATION_RETAIN)
+            }
+            // Now decide whether to cascade our inherited stylsheet to our own children
+            switch inheritedStylesheet {
+            // In the case where our inherited stylesheet is nil, but it previously had a value we need to cascade the change to nil down to our subviews
+            case .none where previousStylesheet != nil:
+                fallthrough
+            // In the case where we the inherited stylesheet is nil, but we aren't styleable and don't need to factor in a possible explicit stylesheet, just go ahead and pass the nil through as the inheritedStylesheet to our subviews
+            case .none where !(self is Styleable):
+                fallthrough
+            // If the inheritedStylesheet isn't nil, cascade it down to our subviews
+            case .some:
+                subviews.forEach { $0.inheritedStylesheet = inheritedStylesheet }
+            // For other scenarios (when inheritedStylesheet is nil, but we ARE Styleable and don't have a previous value), do nothing
+            default:
+                break
+            }
         }
     }
 }
